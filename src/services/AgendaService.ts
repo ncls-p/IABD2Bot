@@ -58,7 +58,7 @@ export class AgendaService {
 
       embed.addFields({
         name: `${event.name} (${disciplineName})`,
-        value: `Date: ${dateStr}\nHeure: ${timeStr}\nSalle: ${roomNames}\nEnseignant: ${event.teacher}`,
+        value: `📆Date: ${dateStr}\n🕦Heure: ${timeStr}\n🔢Salle: ${roomNames}\n🧑‍🏫Enseignant: ${event.teacher}`,
         inline: false,
       });
 
