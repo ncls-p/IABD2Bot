@@ -2,7 +2,7 @@ import { Message } from "discord.js";
 
 import { AgendaService } from "../services/AgendaService";
 
-export const run = async (message: Message, args: string[]) => {
+export const sendAgenda = async (message: Message, args: string[]) => {
   const agendaService = new AgendaService();
   try {
     const agendaEmbed = await agendaService.getAgenda();

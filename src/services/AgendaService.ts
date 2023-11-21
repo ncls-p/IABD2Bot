@@ -1,4 +1,4 @@
-import { EmbedBuilder } from "discord.js";
+import { ColorResolvable, EmbedBuilder } from "discord.js";
 
 import config from "../config";
 import { GesAPI } from "../GesApi";
@@ -19,11 +19,18 @@ export class AgendaService {
   }
 
   private async fetchAgendaData(api: GesAPI): Promise<AgendaItem[]> {
-    const start = new Date(2023, 10, 11);
-    const end = new Date(2023, 12, 11);
+    // the monday at 00:00 of the current week
+    const startDateTime = new Date();
+    startDateTime.setDate(startDateTime.getDate() - startDateTime.getDay() + 1);
+    startDateTime.setHours(0, 0, 0, 0);
+    // the saturnday at 23:59 in 3 weeks
+    const endDateTime = new Date();
+    endDateTime.setDate(endDateTime.getDate() - endDateTime.getDay() + 6);
+    endDateTime.setHours(23, 59, 59, 999);
+    endDateTime.setDate(endDateTime.getDate() + 21);
 
     try {
-      const agendaData = await api.getAgenda(start, end);
+      const agendaData = await api.getAgenda(startDateTime, endDateTime);
       return agendaData;
     } catch (error) {
       console.error(error);
@@ -32,43 +39,98 @@ export class AgendaService {
   }
 
   private formatAgenda(data: AgendaItem[]): EmbedBuilder[] {
+    data.sort((a, b) => {
+      const startDateA = new Date(a.start_date);
+      const startDateB = new Date(b.start_date);
+      const startTimeA = new Date(a.start_date).getTime();
+      const startTimeB = new Date(b.start_date).getTime();
+
+      if (startDateA < startDateB) {
+        return -1;
+      } else if (startDateA > startDateB) {
+        return 1;
+      } else {
+        return startTimeA - startTimeB;
+      }
+    });
+
     let embeds: EmbedBuilder[] = [];
-    let embed = new EmbedBuilder().setTitle("Agenda").setColor("Blue");
-    let fieldCount = 0;
+    let currentEmbed: EmbedBuilder | null = null;
+    let currentDate: Date | null = null;
 
     data.forEach((event: AgendaItem, index) => {
-      let embeds: EmbedBuilder[] = [];
-
-      if (fieldCount === 25) {
-        embeds.push(embed);
-        embed = new EmbedBuilder()
-          .setTitle(`Agenda (suite ${embeds.length})`)
-          .setColor("Blue");
-        fieldCount = 0;
-      }
-
       const startDate = new Date(event.start_date);
       const endDate = new Date(event.end_date);
-      const dateStr = `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
-      const timeStr = `${startDate.toLocaleTimeString()} - ${endDate.toLocaleTimeString()}`;
+      const dateStr = `${startDate.toLocaleDateString("fr-FR")}`;
+      const timeStr = `${startDate.toLocaleTimeString(
+        "fr-FR"
+      )} - ${endDate.toLocaleTimeString("fr-FR")}`;
+      if (event.name.includes("Biais et équité en ia")) {
+        event.name = "Cours Électifs";
+        event.teacher = "Professeur inconnu";
+        event.discipline.name = "Inconnu";
+      }
       const roomNames = event.rooms
         ? event.rooms.map((room) => room.name).join(", ")
-        : "Salle non disponible";
+        : "Distanciel - Salle non disponible";
       const disciplineName = event.discipline.name;
 
-      embed.addFields({
+      if (!currentDate || !this.isSameDay(currentDate, startDate)) {
+        if (currentEmbed) {
+          embeds.push(currentEmbed);
+        }
+
+        const dayOfWeek = startDate.toLocaleDateString("fr-FR", {
+          weekday: "long",
+        });
+        const color = this.getColorForDayOfWeek(dayOfWeek) as ColorResolvable;
+
+        currentEmbed = new EmbedBuilder()
+          .setTitle(`Agenda - ${dayOfWeek}`)
+          .setColor(color);
+        currentDate = startDate;
+      }
+
+      currentEmbed?.addFields({
         name: `${event.name} (${disciplineName})`,
         value: `📆Date: ${dateStr}\n🕦Heure: ${timeStr}\n🔢Salle: ${roomNames}\n🧑‍🏫Enseignant: ${event.teacher}`,
         inline: false,
       });
-
-      fieldCount++;
     });
-    if (fieldCount > 0) {
-      embeds.push(embed);
+
+    if (currentEmbed) {
+      embeds.push(currentEmbed);
     }
 
     return embeds;
+  }
+  private getColorForDayOfWeek(dayOfWeek: string): string {
+    switch (dayOfWeek) {
+      case "lundi":
+        return "Blue";
+      case "mardi":
+        return "Red";
+      case "mercredi":
+        return "Green";
+      case "jeudi":
+        return "Yellow";
+      case "vendredi":
+        return "Purple";
+      case "samedi":
+        return "Orange";
+      case "dimanche":
+        return "Pink";
+      default:
+        return "Blue";
+    }
+  }
+
+  private isSameDay(date1: Date, date2: Date) {
+    return (
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
+    );
   }
 
   public async getAgenda(): Promise<EmbedBuilder[]> {

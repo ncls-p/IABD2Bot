@@ -1,6 +1,6 @@
 import { Client, IntentsBitField } from "discord.js";
 
-import { run } from "./commands/planningCommand";
+import { sendAgenda } from "./commands/planningCommand";
 import config from "./config";
 
 const client = new Client({
@@ -35,7 +35,7 @@ client.on("messageCreate", (message) => {
 
   if (command === "agenda") {
     message.channel.send("Agenda is coming soon!");
-    run(message, args);
+    sendAgenda(message, args);
   }
 });
 client.login(config.token);
