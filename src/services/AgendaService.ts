@@ -62,18 +62,23 @@ export class AgendaService {
       const startDate = new Date(event.start_date);
       const endDate = new Date(event.end_date);
       const dateStr = `${startDate.toLocaleDateString("fr-FR")}`;
-      const timeStr = `${startDate.toLocaleTimeString(
-        "fr-FR"
-      )} - ${endDate.toLocaleTimeString("fr-FR")}`;
+      const timeStr = `${startDate.toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })} - ${endDate.toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`;
       if (event.name.includes("Biais et équité en ia")) {
         event.name = "Cours Électifs";
         event.teacher = "Professeur inconnu";
-        event.discipline.name = "Inconnu";
+      }
+      if (event.name.includes("OPEN ESGI")) {
+        event.teacher = "Professeur inconnu";
       }
       const roomNames = event.rooms
         ? event.rooms.map((room) => room.name).join(", ")
-        : "Distanciel - Salle non disponible";
-      const disciplineName = event.discipline.name;
+        : "Distanciel";
 
       if (!currentDate || !this.isSameDay(currentDate, startDate)) {
         if (currentEmbed) {
@@ -86,15 +91,15 @@ export class AgendaService {
         const color = this.getColorForDayOfWeek(dayOfWeek) as ColorResolvable;
 
         currentEmbed = new EmbedBuilder()
-          .setTitle(`Agenda - ${dayOfWeek}`)
+          .setTitle(`📆${dateStr} - ${dayOfWeek}`)
           .setColor(color);
         currentDate = startDate;
       }
 
       currentEmbed?.addFields({
-        name: `${event.name} (${disciplineName})`,
-        value: `📆Date: ${dateStr}\n🕦Heure: ${timeStr}\n🔢Salle: ${roomNames}\n🧑‍🏫Enseignant: ${event.teacher}`,
-        inline: false,
+        name: `${event.name}`,
+        value: `🕦${timeStr}\n🔢${roomNames}\n🧑‍🏫${event.teacher}`,
+        inline: true,
       });
     });
 
