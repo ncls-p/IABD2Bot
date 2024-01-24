@@ -16,8 +16,7 @@ export type GesAuthenticationToken = {
 };
 
 export class GesAPI {
-  constructor(private credentials: GesAuthenticationToken) {}
-
+  constructor(private credentials: GesAuthenticationToken) { }
   static async login(username: string, password: string) {
     const token = await GesAPI.generateAccessToken(username, password);
 
